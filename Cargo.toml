@@ -1,8 +1,12 @@
 [package]
-name = "envfile"
+name = "config_link"
 version = "0.1.0"
 authors = ["gyara <me@gyara.moe>"]
 edition = "2018"
+
+[dependencies]
+thiserror = "1.0.10"
+toml = "0.5.6"
 
 [dependencies.serde]
 version = "1.0.104"
