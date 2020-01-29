@@ -1,5 +1,5 @@
-use thiserror::Error;
 use async_std::io;
+use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum EnvFileError {

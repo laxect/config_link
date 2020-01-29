@@ -1,7 +1,6 @@
 use async_std::{fs, path};
 use serde::{Deserialize, Serialize};
-use std::os::unix::fs::PermissionsExt;
-use std::collections::HashMap;
+use std::{collections::HashMap, os::unix::fs::PermissionsExt};
 
 #[derive(Clone, Deserialize, Serialize)]
 pub(crate) struct Config {
@@ -35,7 +34,7 @@ impl Config {
     }
 
     pub(crate) async fn do_all(&self) -> async_std::io::Result<()> {
-        for (_name, t) in self.task_list.iter() {
+        for t in self.task_list.values() {
             self.do_task(t).await?;
         }
         Ok(())
@@ -47,9 +46,9 @@ pub(crate) async fn create_dir_all<P: AsRef<path::Path>>(p: P) -> async_std::io:
     path_all.pop();
     if let Err(e) = fs::create_dir_all(path_all).await {
         if e.kind() == async_std::io::ErrorKind::AlreadyExists {
-            return Ok(())
+            return Ok(());
         } else {
-            return Err(e)
+            return Err(e);
         }
     }
     Ok(())
