@@ -19,7 +19,7 @@ pub(crate) async fn read_config<P: AsRef<path::Path>>(path: P) -> error::Result<
 }
 
 pub async fn link() -> error::Result<()> {
-    let config = read_config(CONFIG_FILE).await?;
+    let mut config = read_config(CONFIG_FILE).await?;
     config.do_all().await?;
     Ok(())
 }
@@ -38,7 +38,7 @@ pub async fn read_option() -> error::Result<()> {
         }
         Opt::Init => {
             init().await?;
-        },
+        }
     };
     Ok(())
 }
