@@ -38,8 +38,10 @@ impl Config {
 
     pub(crate) async fn do_all(&mut self) -> error::Result<()> {
         self.fix_home_dir()?;
-        for t in self.task_list.values() {
-            self.do_task(t).await?;
+        for (name, t) in self.task_list.iter() {
+            if let Err(e) = self.do_task(t).await {
+                eprintln!("task {} failed.\n  {}", name, e);
+            }
         }
         Ok(())
     }
@@ -79,7 +81,7 @@ pub(crate) struct ConfigItem {
 
 fn fix_home_dir(p: &mut String) -> Result<(), env::VarError> {
     let home_dir = env::var("HOME")?;
-    if p.starts_with('~') {
+    if p.starts_with("~/") {
         p.replace_range(..1, &home_dir);
     }
     Ok(())
