@@ -10,6 +10,13 @@ pub(crate) struct Config {
 }
 
 impl Config {
+    pub(crate) fn new() -> Self {
+        Self {
+            work_mode: WorkMode::default(),
+            task_list: HashMap::new(),
+        }
+    }
+
     pub(crate) async fn link(&self, src: &str, dst: &str) -> async_std::io::Result<()> {
         match self.work_mode {
             WorkMode::HardLink => {

@@ -7,6 +7,8 @@ pub enum EnvFileError {
     IoError(#[from] io::Error),
     #[error("Yaml error: `{0}`")]
     TomlError(#[from] toml::de::Error),
+    #[error("Yaml Ser error: `{0}`")]
+    SerError(#[from] toml::ser::Error),
 }
 
 pub type Result<T> = std::result::Result<T, EnvFileError>;
