@@ -1,7 +1,7 @@
 use crate::error;
 use async_std::{fs, path};
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, env, os::unix::fs::PermissionsExt};
+use std::{collections::HashMap, env, io, os::unix::fs::PermissionsExt};
 
 #[derive(Clone, Deserialize, Serialize)]
 pub(crate) struct Config {
@@ -98,13 +98,26 @@ impl ConfigItem {
         Ok(())
     }
 
+    pub(crate) fn fixed_relative_path(&self) -> io::Result<path::PathBuf> {
+        let src = path::PathBuf::from(&self.src);
+        if src.is_relative() {
+            let mut cur = env::current_dir()?;
+            cur.push(src);
+            Ok(cur.into())
+        } else {
+            Ok(src)
+        }
+    }
+
     pub(crate) async fn link(&self, work_mode: WorkMode) -> async_std::io::Result<()> {
         match work_mode {
             WorkMode::HardLink => {
                 async_std::fs::hard_link(&self.src, &self.dst).await?;
             }
             WorkMode::SymLink => {
-                async_std::os::unix::fs::symlink(&self.src, &self.dst).await?;
+                // if use symlink, need self's src also be fixed
+                let src = self.fixed_relative_path()?;
+                async_std::os::unix::fs::symlink(src, &self.dst).await?;
             }
         }
         Ok(())
