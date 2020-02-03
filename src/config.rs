@@ -1,7 +1,7 @@
 use crate::error;
 use async_std::{fs, path};
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, env, io, os::unix::fs::PermissionsExt};
+use std::{collections::HashMap, env, os::unix::fs::PermissionsExt};
 
 #[derive(Clone, Deserialize, Serialize)]
 pub(crate) struct Config {
@@ -41,20 +41,22 @@ impl Config {
         for (name, t) in self.task_list.iter() {
             if let Err(e) = self.do_task(t).await {
                 eprintln!("task {} failed.\n  {}", name, e);
+            } else {
+                println!("task {} success.", name);
             }
         }
         Ok(())
     }
 }
 
-pub(crate) async fn create_dir_all<P: AsRef<path::Path>>(p: P) -> async_std::io::Result<()> {
+pub(crate) async fn create_dir_all<P: AsRef<path::Path>>(p: P) -> error::Result<()> {
     let mut path_all = path::PathBuf::from(p.as_ref());
     path_all.pop();
     if let Err(e) = fs::create_dir_all(path_all).await {
         if e.kind() == async_std::io::ErrorKind::AlreadyExists {
             return Ok(());
         } else {
-            return Err(e);
+            return Err(e.into());
         }
     }
     Ok(())
@@ -79,7 +81,7 @@ pub(crate) struct ConfigItem {
     permission: Option<u32>,
 }
 
-fn fix_home_dir(p: &mut String) -> Result<(), env::VarError> {
+fn fix_home_dir(p: &mut String) -> error::Result<()> {
     let home_dir = env::var("HOME")?;
     if p.starts_with("~/") {
         p.replace_range(..1, &home_dir);
@@ -92,13 +94,13 @@ impl ConfigItem {
         self.permission.map(fs::Permissions::from_mode)
     }
 
-    pub(crate) fn fix_home_dir(&mut self) -> Result<(), env::VarError> {
+    pub(crate) fn fix_home_dir(&mut self) -> error::Result<()> {
         fix_home_dir(&mut self.src)?;
         fix_home_dir(&mut self.dst)?;
         Ok(())
     }
 
-    pub(crate) fn fixed_relative_path(&self) -> io::Result<path::PathBuf> {
+    pub(crate) fn fixed_relative_src(&self) -> error::Result<path::PathBuf> {
         let src = path::PathBuf::from(&self.src);
         if src.is_relative() {
             let mut cur = env::current_dir()?;
@@ -109,14 +111,14 @@ impl ConfigItem {
         }
     }
 
-    pub(crate) async fn link(&self, work_mode: WorkMode) -> async_std::io::Result<()> {
+    pub(crate) async fn link(&self, work_mode: WorkMode) -> error::Result<()> {
         match work_mode {
             WorkMode::HardLink => {
                 async_std::fs::hard_link(&self.src, &self.dst).await?;
             }
             WorkMode::SymLink => {
                 // if use symlink, need self's src also be fixed
-                let src = self.fixed_relative_path()?;
+                let src = self.fixed_relative_src()?;
                 async_std::os::unix::fs::symlink(src, &self.dst).await?;
             }
         }
